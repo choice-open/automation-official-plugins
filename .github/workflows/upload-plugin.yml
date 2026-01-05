@@ -14,6 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
       - name: Install AWS CLI
@@ -35,4 +36,4 @@ jobs:
           S3_PREFIX: ${{ secrets.S3_PREFIX }}
         run: |
           chmod +x scripts/upload-plugin.sh
-          scripts/upload-plugin.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+          scripts/upload-plugin.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.merge_commit_sha }}"
