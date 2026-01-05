@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/typesafe-i18n@5.26.2/schema/typesafe-i18n.json",
+  "adapter": "node",
+  "baseLocale": "en-US",
+  "esmImports": true,
+  "generateOnlyTypes": true,
+  "runAfterGenerator": "bun biome format ./src/i18n --write"
+}
