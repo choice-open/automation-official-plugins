@@ -50,6 +50,41 @@ done <<<"$CHANGED_FILES"
 
 echo "Target directory: ${TARGET_DIR}"
 
+# Function to extract version from project files
+extract_version() {
+	local dir="$1"
+	local sha="$2"
+	
+	# Try npm project (package.json)
+	if git show "${sha}:${dir}/package.json" &>/dev/null; then
+		git show "${sha}:${dir}/package.json" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1
+	# Try elixir project (mix.exs)
+	elif git show "${sha}:${dir}/mix.exs" &>/dev/null; then
+		git show "${sha}:${dir}/mix.exs" | sed -n 's/.*version:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1
+	else
+		echo ""
+	fi
+}
+
+# Extract versions from both base and head
+BASE_VERSION=$(extract_version "$TARGET_DIR" "$BASE_SHA")
+HEAD_VERSION=$(extract_version "$TARGET_DIR" "$HEAD_SHA")
+
+if [ -z "$HEAD_VERSION" ]; then
+	echo "Error: Cannot find version in package.json or mix.exs in $TARGET_DIR"
+	exit 1
+fi
+
+echo "Base version: ${BASE_VERSION:-<none>}"
+echo "Head version: ${HEAD_VERSION}"
+
+# Check if version was updated in this PR
+if [ -n "$BASE_VERSION" ] && [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+	echo "Error: Version not updated in this PR"
+	echo "Current version: $HEAD_VERSION"
+	exit 1
+fi
+
 # Upload to S3
 S3_BUCKET="${S3_BUCKET:-}"
 S3_PREFIX="${S3_PREFIX:-plugins/}"
@@ -59,7 +94,8 @@ if [ -z "$S3_BUCKET" ]; then
 	exit 1
 fi
 
-S3_PATH="s3://${S3_BUCKET}/${S3_PREFIX}${TARGET_DIR#${PLUGINS_DIR}/}"
+PLUGIN_NAME="${TARGET_DIR#${PLUGINS_DIR}/}"
+S3_PATH="s3://${S3_BUCKET}/${S3_PREFIX}${PLUGIN_NAME}_${HEAD_VERSION}"
 
 echo "Uploading ${TARGET_DIR} to ${S3_PATH}"
 
